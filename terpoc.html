@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>TERPOC Frontend</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.3/css/bulma.min.css">
+  </head>
+  <body>
+
+  <div class="box">
+    <div class="control">
+      <button class="button is-link" id="connectBtn">Connect</button>
+      <span id="addressHeader" style="font-size:14pt">---</span>
+    </div>
+  </div>
+
+  <section class="section">
+    <h1 class="title">TERPOC Frontend</h1>
+    <div class="tabs">
+      <ul>
+        <li id="tabRoles" class="is-active"><a>Roles</a></li>
+        <li id="tabBlocked"><a>Blocked</a></li>
+        <li id="tabMint"><a>Mint/Redeem</a></li>
+        <li id="tabUpgrade"><a>Upgrade</a></li>
+      </ul>
+    </div>
+  </section>
+
+  <section id="secRoles" class="section">
+
+    <div class="panel is-link">
+      <p class="panel-heading">Owner</p>
+      <div class="box">
+        <div class="field">
+          <label class="label">Address</label>
+          <input class="input" type="text" id="ownerAddr" />
+        </div>
+        <div class="control">
+          <button class="button is-link" id="setOwnerBtn">Transfer Ownership</button>
+          <button class="button is-info" id="qryOwnerBtn">Query</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel is-link">
+      <p class="panel-heading">Operator</p>
+      <div class="box">
+        <div class="field">
+          <label class="label">Address</label>
+          <input class="input" type="text" id="operatorAddr" />
+        </div>
+        <div class="control">
+          <button class="button is-link" id="addOperatorBtn">Add</button>
+          <button class="button is-link" id="delOperatorBtn">Remove</button>
+          <button class="button is-info" id="qryOperatorBtn">Query</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel is-link">
+      <p class="panel-heading">Approver</p>
+      <div class="box">
+        <div class="field">
+          <label class="label">Address</label>
+          <input class="input" type="text" id="approverAddr" />
+        </div>
+        <div class="control">
+          <button class="button is-link" id="addApproverBtn">Add</button>
+          <button class="button is-link" id="delApproverBtn">Remove</button>
+          <button class="button is-info" id="qryApproverBtn">Query</button>
+        </div>
+      </div>
+    </div>
+
+  </section>
+
+  <section id="secBlocked" class="section is-hidden">
+
+    <div class="panel is-link">
+      <p class="panel-heading">Blocked Address</p>
+      <div class="box">
+        <div class="field">
+          <label class="label">Address</label>
+          <input class="input" type="text" id="blockedAddr" />
+        </div>
+        <div class="control">
+          <button class="button is-link" id="addBlockedBtn">Add</button>
+          <button class="button is-link" id="delBlockedBtn">Remove</button>
+          <button class="button is-info" id="qryBlockedBtn">Query</button>
+        </div>
+      </div>
+    </div>
+
+  </section>
+
+  <section id="secMint" class="section is-hidden">
+
+    <div class="panel is-link">
+      <p class="panel-heading">MintTo</p>
+      <div class="box">
+        <div class="field">
+          <label class="label">Receiver</label>
+          <input class="input" type="text" id="mintToAddr" />
+        </div>
+        <div class="field">
+          <label class="label">Amount</label>
+          <input class="input" type="number" id="mintToAmt" />
+        </div>
+        <div class="field">
+          <label class="label">Nonce</label>
+          <input class="input" type="number" id="mintToNonce" />
+        </div>
+        <div class="control">
+          <button class="button is-link" id="mintToReqBtn">Request</button>
+          <button class="button is-link" id="mintToExeBtn">Execute</button>
+          <button class="button is-link" id="revokeBtn">Revoke</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel is-link">
+      <p class="panel-heading">Redeem</p>
+      <div class="box">
+        <div class="field">
+          <label class="label">Amount</label>
+          <input class="input" type="number" id="redeemAmt" />
+        </div>
+        <div class="field">
+          <label class="label">Customer</label>
+          <input class="input" type="text" id="redeemAddr" />
+        </div>
+        <div class="field">
+          <label class="label">Data</label>
+          <input class="input" type="text" id="redeemData" />
+        </div>
+        <div class="control">
+          <button class="button is-link" id="redeemBtn">Submit</button>
+        </div>
+      </div>
+    </div>
+
+  </section>
+
+  <section id="secUpgrade" class="section is-hidden">
+    <div class="panel is-link">
+      <p class="panel-heading">Upgrade</p>
+      <div class="box">
+        <div class="field">
+           <label class="label">Impl Address</label>
+           <input class="input" type="text" id="implAddr" />
+        </div>
+        <div class="control">
+          <button class="button is-info" id="qryUpgradeBtn">Query</button>
+          <button class="button is-link" id="reqUpgradeBtn">Request Upgrade</button>
+          <button class="button is-link" id="exeUpgradeBtn">Execute Upgrade</button>
+        </div>
+      </div>
+    </div>
+
+  </section>
+
+  <script type="module">
+import { ethers } from "../js/ethers-5.4.esm.min.js";
+import u from '../js/umbrella-3.3.0.esm.js';
+import { toast } from '../js/bulma-toast.esm.js';
+
+const terpocAddrSepolia = '0x664bB117E6d9959AbCf9A6878Cf22F9bFf55AeFc'; // ethSepolia
+const terpocAddrBscTest = "0x4B3976D4A71913B6f956B927Fb90f7D7F1aDBbB4"; // bscTestnet
+
+let terpocAddr = terpocAddrSepolia;
+const erc1967ImplSlot = "0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc";
+
+const terpocABI = [
+  "function owner() public view returns (address)",
+  "function operators(address) public view returns (bool)",
+  "function approvers(address) public view returns (bool)",
+  "function isBlocked(address) public view returns (bool)",
+  "function transferOwnership(address newOwner) public", // onlyOwner
+  "function setOperator(address, bool) public", // onlyOwner
+  "function setApprover(address, bool) public", // onlyOwner
+  "function revokeRequest(bytes32 req) public", // onlyApprover
+  "function addToBlockedList(address _user) public", // onlyOperator
+  "function removeFromBlockedList(address _user) public", // onlyOperator
+  "function mintTo(address, uint, uint) public returns (bool)",
+  "function redeem(uint, address, bytes calldata) public", // onlyOperator
+  "function requestUpgradeToAndCall(address, bytes memory) public", // onlyOwner
+  "function upgradeToAndCall(address, bytes memory) public", // onlyProxy
+];
+
+var provider;
+var signer;
+var myAddr;
+var terpoc;
+
+function getAddrAtSlot(contractAddr, slot) {
+  return provider.getStorageAt(contractAddr, slot)
+    .then(x => x.replace('0x000000000000000000000000', '0x'))
+}
+
+// function getUsdvAddr(chainId) {
+//   switch (Number(chainId)) {
+//   case    10: return "0x323665443CEf804A3b5206103304BD4872EA4253"; // OP
+//   case    56: return "0x323665443CEf804A3b5206103304BD4872EA4253"; // BSC
+//   case 42161: return "0x323665443CEf804A3b5206103304BD4872EA4253"; // Arb
+//   case 43114: return "0x323665443CEf804A3b5206103304BD4872EA4253"; // AVAX
+//   default: return USDVAddr;
+//   }
+// }
+
+// ---------- error ----------
+
+function showErr(err) {
+  toast({
+    message: '<code>' + JSON.stringify(err).replaceAll('\n', '<br/>') + '</code>',
+    type: 'is-warning',
+    dismissible: true,
+    duration: 10000,
+    // animate: { in: 'fadeIn', out: 'fadeOut' },
+  });
+}
+
+// window.onerror = function() { alert("Error caught"); };
+// window.addEventListener('error', function(event) { alert(event) })
+window.onunhandledrejection = event => { 
+  // Logs the error in the console 
+  // console.log(`UNHANDLED PROMISE REJECTION: ${event.reason}`); 
+  showErr({err: `UNHANDLED PROMISE REJECTION: ${event.reason}`});
+};
+
+// ---------- tabs ----------
+
+const tabIds = ['#tabRoles', '#tabBlocked', '#tabMint', '#tabUpgrade'];
+const secIds = ['#secRoles', '#secBlocked', '#secMint', '#secUpgrade'];
+
+// handle tab switching
+for (const tabId of tabIds) {
+  const secId = tabId.replace('tab', 'sec');
+  u(tabId).handle('click', (e) => {
+    u(tabId).addClass('is-active');
+    u(secId).removeClass('is-hidden');
+    tabIds.filter(x => x != tabId).forEach(x => u(x).removeClass('is-active'));
+    secIds.filter(x => x != secId).forEach(x => u(x).addClass('is-hidden'));
+    window.location.hash = tabId;
+  });
+}
+
+console.log(window.location);
+const tabId = window.location.hash;
+if (tabId) {
+  u(tabId).trigger('click');
+}
+
+// ---------- connect button ----------
+
+u('#connectBtn').handle('click', connectWallet);
+document.onload = connectWallet;
+
+async function connectWallet(e) {
+  console.log(window.ethereum)
+  provider = new ethers.providers.Web3Provider(window.ethereum)
+  
+  await provider.send("eth_requestAccounts", []);
+  
+  signer = provider.getSigner();
+  myAddr = await signer.getAddress();
+  console.log('myAddr:', myAddr);
+  u("#addressHeader").text(myAddr);
+
+  const chainId = await window.ethereum.request({ method: 'eth_chainId' });
+  console.log('chainId:', chainId);
+
+  if (chainId == 0xaa36a7) {
+    terpocAddr = terpocAddrSepolia;
+  } else if (chainId == 0x61) {
+    terpocAddr = terpocAddrBscTest;
+  } else {
+    showErr("unsupported chain: " + chainId);
+  }
+
+  console.log('terpocAddr:', terpocAddr);
+  terpoc = new ethers.Contract(terpocAddr, terpocABI, provider);
+
+};
+
+// ---------- ownership ----------
+u('#qryOwnerBtn').handle('click', async (e) => {
+  console.log('qryOwnerBtn clicked');
+  const owner = await terpoc.owner();
+  u('#ownerAddr').first().value = owner;
+});
+u('#setOwnerBtn').handle('click', async (e) => {
+  console.log('setOwnerBtn clicked');
+  const addr = u('#ownerAddr').first().value;
+  console.log('ownerAddr:', addr);
+  await terpoc.connect(signer).transferOwnership(addr);
+});
+
+// ---------- operators ----------
+u('#qryOperatorBtn').handle('click', async (e) => {
+  console.log('qryOperatorBtn clicked');
+  const addr = u('#operatorAddr').first().value;
+  const ok = await terpoc.operators(addr);
+  alert(ok);
+});
+u('#addOperatorBtn').handle('click', async (e) => {
+  console.log('addOperatorBtn clicked');
+  const addr = u('#operatorAddr').first().value;
+  const tx = await terpoc.connect(signer).setOperator(addr, true);
+  console.log(tx);
+});
+u('#delOperatorBtn').handle('click', async (e) => {
+  console.log('delOperatorBtn clicked');
+  const addr = u('#operatorAddr').first().value;
+  const tx = await terpoc.connect(signer).setOperator(addr, false);
+  console.log(tx);
+});
+
+// ---------- approvers ----------
+u('#qryApproverBtn').handle('click', async (e) => {
+  console.log('qryApproverBtn clicked');
+  const addr = u('#approverAddr').first().value;
+  const ok = await terpoc.approvers(addr);
+  alert(ok);
+});
+u('#addApproverBtn').handle('click', async (e) => {
+  console.log('addApproverBtn clicked');
+  const addr = u('#approverAddr').first().value;
+  const tx = await terpoc.connect(signer).setApprover(addr, true);
+  console.log(tx);
+});
+u('#delApproverBtn').handle('click', async (e) => {
+  console.log('delApproverBtn clicked');
+  const addr = u('#approverAddr').first().value;
+  const tx = await terpoc.connect(signer).setApprover(addr, false);
+  console.log(tx);
+});
+
+// ---------- blocked ----------
+u('#qryBlockedBtn').handle('click', async (e) => {
+  console.log('qryBlockedBtn clicked');
+  const addr = u('#blockedAddr').first().value;
+  const ok = await terpoc.isBlocked(addr);
+  alert(ok);
+});
+u('#addBlockedBtn').handle('click', async (e) => {
+  console.log('addBlockedBtn clicked');
+  const addr = u('#blockedAddr').first().value;
+  const tx = await terpoc.connect(signer).addToBlockedList(addr);
+  console.log(tx);
+});
+u('#delBlockedBtn').handle('click', async (e) => {
+  console.log('delBlockedBtn clicked');
+  const addr = u('#blockedAddr').first().value;
+  const tx = await terpoc.connect(signer).removeFromBlockedList(addr);
+  console.log(tx);
+});
+
+// ---------- mintTo ----------
+async function mintTo() {
+  const addr = u('#mintToAddr').first().value;
+  const amt = u('#mintToAmt').first().value;
+  const nonce = u('#mintToNonce').first().value;
+  const amtBN = ethers.utils.parseEther(amt);
+  console.log(addr, amtBN, nonce);
+  const tx = await terpoc.connect(signer)
+    .mintTo(addr, amtBN, nonce);
+  console.log(tx);
+}
+u('#mintToReqBtn').handle('click', async (e) => {
+  console.log('mintToReqBtn clicked');
+  await mintTo();
+});
+u('#revokeBtn').handle('click', async (e) => {
+  console.log('revokeBtn clicked');
+
+  const addr = u('#mintToAddr').first().value;
+  const amt = u('#mintToAmt').first().value;
+  const nonce = u('#mintToNonce').first().value;
+  const amtBN = ethers.utils.parseEther(amt);
+  // keccak256(abi.encode(receiver, amount, nonce));
+  const reqData = ethers.utils.defaultAbiCoder.encode(
+    ["address", "uint", "uint"], [addr, amtBN, nonce]);
+  const reqId = ethers.utils.keccak256(reqData);
+
+  console.log(addr, amtBN, nonce);
+  console.log('reqId:', reqId);
+
+  const tx = await terpoc.connect(signer)
+    .revokeRequest(reqId);
+  console.log(tx);
+});
+
+// ---------- redeem ----------
+u('#redeemBtn').handle('click', async (e) => {
+  console.log('redeemBtn clicked');
+  const amt = u('#redeemAmt').first().value;
+  const addr = u('#redeemAddr').first().value;
+  const data = u('#redeemData').first().value;
+  const amtBN = ethers.utils.parseEther(amt);
+  const dataHex = ethers.utils.formatBytes32String(data);
+  console.log(amtBN, addr, dataHex);
+
+  const tx = await terpoc.connect(signer)
+    .redeem(amtBN, addr, dataHex);
+  console.log(tx);
+});
+
+// ---------- upgrade ----------
+u('#qryUpgradeBtn').handle('click', async (e) => {
+  console.log('qryUpgradeBtn clicked');
+  const implAddr = await getAddrAtSlot(terpocAddr, erc1967ImplSlot);
+  // console.log('implAddr:', implAddr);
+  u('#implAddr').first().value = implAddr;
+});
+u('#reqUpgradeBtn').handle('click', async (e) => {
+  console.log('reqUpgradeBtn clicked');
+  const implAddr = u('#implAddr').first().value;
+  // console.log('implAddr:', implAddr);
+  const tx = await terpoc.connect(signer)
+    .requestUpgradeToAndCall(implAddr, "0x");
+  console.log(tx);
+});
+u('#exeUpgradeBtn').handle('click', async (e) => {
+  console.log('exeUpgradeBtn clicked');
+  const implAddr = u('#implAddr').first().value;
+  // console.log('implAddr:', implAddr);
+  const tx = await terpoc.connect(signer)
+    .upgradeToAndCall(implAddr, "0x");
+  console.log(tx);
+});
+
+  </script>
+  </body>
+</html>
