@@ -23,6 +23,7 @@
         <li id="tabBlocked"><a>Blocked</a></li>
         <li id="tabMint"><a>Mint/Redeem</a></li>
         <li id="tabUpgrade"><a>Upgrade</a></li>
+        <li id="tabOps"><a>Operations</a></li>
       </ul>
     </div>
   </section>
@@ -160,11 +161,38 @@
 
   </section>
 
+  <section id="secOps" class="section is-hidden">
+    <div class="panel is-link">
+      <p class="panel-heading">Recent Operations</p>
+      <div class="box">
+        <div class="table-container">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>BlockNumber</th>
+                <th>TxHash</th>
+                <th>Operation</th>
+                <th>Detail</th>
+              </tr>
+            </thead>
+            <tbody id="opsRows">
+            </tbody>
+          </table>
+        </div>
+        <div class="control">
+          <button class="button is-link" id="refreshOpsBtn">Refresh</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+
   <script type="module">
 import { ethers } from "../js/ethers-5.4.esm.min.js";
 import u from '../js/umbrella-3.3.0.esm.js';
 import { toast } from '../js/bulma-toast.esm.js';
 
+const terpocAddrEthMain = '0x2022bE364C2c0b46bB693d154bFb8eB5476A877d'; // ethMainnet
 const terpocAddrSepolia = '0x664bB117E6d9959AbCf9A6878Cf22F9bFf55AeFc'; // ethSepolia
 const terpocAddrBscTest = "0x4B3976D4A71913B6f956B927Fb90f7D7F1aDBbB4"; // bscTestnet
 
@@ -198,15 +226,105 @@ function getAddrAtSlot(contractAddr, slot) {
     .then(x => x.replace('0x000000000000000000000000', '0x'))
 }
 
-// function getUsdvAddr(chainId) {
-//   switch (Number(chainId)) {
-//   case    10: return "0x323665443CEf804A3b5206103304BD4872EA4253"; // OP
-//   case    56: return "0x323665443CEf804A3b5206103304BD4872EA4253"; // BSC
-//   case 42161: return "0x323665443CEf804A3b5206103304BD4872EA4253"; // Arb
-//   case 43114: return "0x323665443CEf804A3b5206103304BD4872EA4253"; // AVAX
-//   default: return USDVAddr;
-//   }
-// }
+function bytes32ToAddr(x) {
+  return x.replace('0x000000000000000000000000', '0x');
+}
+
+
+function parseEvent(event) {
+  switch (event.topics[0]) {
+    case '0xc7f505b2f371ae2175ee4913f4499e1f2633a7b5936321eed1cdaeb6115181d2':
+      return {
+        op: 'Initialized',
+        detail: event.data,
+      };
+    case '0xbc7cd75a20ee27fd9adebab32041f755214dbc6bffa90cc0225b39da2e5c2d3b':
+      return {
+        op: 'Upgraded',
+        detail: {
+          impl: bytes32ToAddr(event.topics[1]),
+        }
+      };
+    case '0x8be0079c531659141344cd1fd0a4f28419497f9722a3daafe3b4186f6b6457e0': 
+      return {
+        op: 'TransferOwnership',
+        detail: {
+          from: bytes32ToAddr(event.topics[1]),
+          to: bytes32ToAddr(event.topics[2]),
+        },
+      };
+    case '0x1618a22a3b00b9ac70fd5a82f1f5cdd8cb272bd0f1b740ddf7c26ab05881dd5b':
+      return {
+        op: 'SetOperator',
+        detail: {
+          operator: bytes32ToAddr(event.topics[1]),
+          enabled: Number(event.data) > 0,
+        },
+      };
+    case '0x323888aef1ea04a125806387c1f89db9bd9c5c6f40a1f2303e57fc3b9e8d8cf0':
+      return {
+        op: 'SetApprover',
+        detail: {
+          approver: bytes32ToAddr(event.topics[1]),
+          enabled: Number(event.data) > 0,
+        },
+      };
+    case '0x406bbf2d8d145125adf1198d2cf8a67c66cc4bb0ab01c37dccd4f7c0aae1e7c7':
+      return {
+        op: 'BlockPlaced',
+        detail: {
+          address: bytes32ToAddr(event.topics[1]),
+        },
+      };
+    case '0x665918c9e02eb2fd85acca3969cb054fc84c138e60ec4af22ab6ef2fd4c93c27':
+      return {
+        op: 'BlockReleased',
+        detail: {
+          address: bytes32ToAddr(event.topics[1]),
+        },
+      };
+    case '0x5b5758388c63ddbb027c1c831a65b27d9c8f0cb94b3d4452b9061e541a7a14b3':
+      return {
+        op: 'MintRequest',
+        detail: {
+          receiver: bytes32ToAddr(event.topics[1]),
+          amount: ethers.utils.formatEther(BigInt(event.data.substring(0, 66))),
+          nonce: Number('0x' + event.data.substring(66)),
+        },
+      };
+    case '0x806dc0290fcdd417bbb174a9f100caca0a3a138dde7f3031430dbf5f80cd51d7':
+      return {
+        op: 'RequestRevoked',
+        detail: {
+          reqId: event.topics[1],
+        }
+      }
+    case '0xaa42d7f17938b1f871b578d29e9906d689168f23d73e6f3d6ebfae27bb652159':
+      return {
+        op: 'Redeem',
+        detail: {
+          customer: bytes32ToAddr(event.topics[1]),
+          amount: ethers.utils.formatEther(BigInt(event.data.substring(0, 66))),
+        },
+      }
+    case '0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef':
+      return {
+        op: 'Transfer',
+        detail: {
+          from: bytes32ToAddr(event.topics[1]),
+          to: bytes32ToAddr(event.topics[2]),
+          amount: ethers.utils.formatEther(BigInt(event.data)),
+        },
+      };
+    default:
+      return {
+        op: "Unknow",
+        detail: event.topics[0],
+      };
+  }
+
+  // body...
+}
 
 // ---------- error ----------
 
@@ -230,8 +348,8 @@ window.onunhandledrejection = event => {
 
 // ---------- tabs ----------
 
-const tabIds = ['#tabRoles', '#tabBlocked', '#tabMint', '#tabUpgrade'];
-const secIds = ['#secRoles', '#secBlocked', '#secMint', '#secUpgrade'];
+const tabIds = ['#tabRoles', '#tabBlocked', '#tabMint', '#tabUpgrade', '#tabOps'];
+const secIds = ['#secRoles', '#secBlocked', '#secMint', '#secUpgrade', '#secOps'];
 
 // handle tab switching
 for (const tabId of tabIds) {
@@ -270,7 +388,10 @@ async function connectWallet(e) {
   const chainId = await window.ethereum.request({ method: 'eth_chainId' });
   console.log('chainId:', chainId);
 
-  if (chainId == 0xaa36a7) {
+
+  if (chainId == 1) {
+    terpocAddr = terpocAddrEthMain;
+  } else if (chainId == 0xaa36a7) {
     terpocAddr = terpocAddrSepolia;
   } else if (chainId == 0x61) {
     terpocAddr = terpocAddrBscTest;
@@ -432,6 +553,44 @@ u('#exeUpgradeBtn').handle('click', async (e) => {
   const tx = await terpoc.connect(signer)
     .upgradeToAndCall(implAddr, "0x");
   console.log(tx);
+});
+
+// ---------- ops ----------
+u('#refreshOpsBtn').handle('click', async (e) => {
+  console.log('refreshOpsBtn clicked');
+  u('#refreshOpsBtn').first().disabled = true;
+  u('#opsRows').empty();
+
+  const n = await provider.getBlockNumber();
+  console.log('n:', n);
+  for (let i = 0; i < 200; i++) {
+    let fromBlock = n - (i + 1) * 1000;
+    let toBlock = n - i * 1000 - 1;
+    // console.log(fromBlock, toBlock);
+
+    const logs = await provider.getLogs({
+      fromBlock, toBlock, address: terpocAddr,
+    });
+    // console.log(logs);
+
+    logs.sort((a, b) => b.blockNumber - a.blockNumber);
+
+    for (const event of logs) {
+      console.log(event);
+      const parsed = parseEvent(event);
+      u('#opsRows').append(
+`<tr>
+  <td>${event.blockNumber}</td>
+  <td>${event.transactionHash}</td>
+  <td>${parsed.op}</td>
+  <td>${JSON.stringify(parsed.detail)}</td>
+</tr>`
+      );
+
+    }
+  }
+
+  u('#refreshOpsBtn').first().disabled = false;
 });
 
   </script>
